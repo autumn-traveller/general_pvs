@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: rust toolchain
+      - name: get rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -21,3 +21,8 @@ jobs:
         with:
           command: build
           args: --profile ${{ matrix.build }} --all-features
+      - name: run unit tests for dev build
+        if: ${{ matrix.build == 'dev' }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
