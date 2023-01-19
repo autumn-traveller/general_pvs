@@ -1,0 +1,23 @@
+name: build
+on: [push]
+jobs:
+  build:
+    strategy:
+      matrix:
+        build: [dev, release]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: check out repository code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --profile ${{ matrix.build }} --all-features
