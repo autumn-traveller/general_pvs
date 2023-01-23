@@ -4,7 +4,7 @@ jobs:
   build:
     strategy:
       matrix:
-        build: [dev, release]
+        build: [release]
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -21,8 +21,7 @@ jobs:
         with:
           command: build
           args: --profile ${{ matrix.build }} --all-features
-      - name: run unit tests for dev build
-        if: ${{ matrix.build == 'dev' }}
+      - name: tests
         uses: actions-rs/cargo@v1
         with:
           command: test

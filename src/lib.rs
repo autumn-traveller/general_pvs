@@ -1,14 +1,8 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub mod general_codes;
+pub trait PvsProtocolCoding: Sized {
+    /// The associated error which can be returned from parsing.
+    /// 
+    // fn pvs_try_decode(&self, length: u64, data: Vec<u8>) -> bool;
+    fn pvs_try_decode(b: &[u8]) -> Result<Self, &str>;
+    fn pvs_encode(&self) -> Vec<u8>;
 }
