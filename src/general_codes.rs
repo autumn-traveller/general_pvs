@@ -48,7 +48,6 @@ mod tests {
     #[test]
     fn try_decode_good_ipv4() {
         let data = vec![127,14,5,66];
-        
         let is = Ipv4Addr::pvs_try_decode(&data).unwrap();
         let should = Ipv4Addr::from_str("127.14.5.66").unwrap();
         assert_eq!(is,should);
@@ -57,7 +56,6 @@ mod tests {
     #[test]
     fn try_decode_bad_ipv4() {
         let data = vec![127,14,5,66,55];
-        
         let r = Ipv4Addr::pvs_try_decode(&data);
         assert!(r.is_err());
     }
@@ -73,7 +71,6 @@ mod tests {
     #[test]
     fn try_decode_good_ipv6() {
         let data = vec![0x21,0xa5,0x78,0xab, 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, 0xcd,0x02,0xf3,0xe6];
-        
         let is = Ipv6Addr::pvs_try_decode(&data).unwrap();
         let should = Ipv6Addr::from_str("21a5:78ab::cd02:f3e6").unwrap();
         assert_eq!(is,should);
@@ -82,7 +79,6 @@ mod tests {
     #[test]
     fn try_decode_bad_ipv6() {
         let data = vec![0x1];
-        
         let r = Ipv6Addr::pvs_try_decode(&data);
         assert!(r.is_err());
     }
