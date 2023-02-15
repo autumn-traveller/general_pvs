@@ -23,8 +23,14 @@ pub enum GeneralAddressType {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct IPv4AndPort {
-    address: Ipv4Addr,
-    port: u16
+    pub address: Ipv4Addr,
+    pub port: u16
+}
+
+pub struct AddressAndPort<T : PvsEncoding> {
+    pub address: T,
+    pub port: u16,
+    pub code: u8 // code defined in the standard 
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -36,12 +42,10 @@ pub enum GeneralMetadataType {
 }
 
 pub struct PvsData {
-    format: u8,
-    value_to_send: Option<Box<dyn PvsEncoding>>,
-    recvd_bytes: Option<Vec<u8>>
+    pub format: u8,
+    pub value_to_send: Option<Box<dyn PvsEncoding>>,
+    pub recvd_bytes: Option<Vec<u8>>
 }
-
-//TODO: comment back in stuff once we settle on a format
 
 pub struct PvsPeerEntry {
     pub addresses: Vec<PvsData>,

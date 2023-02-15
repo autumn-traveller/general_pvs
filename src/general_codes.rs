@@ -1,6 +1,4 @@
 use crate::*;
-// use core::slice::SlicePattern;
-use std::str::FromStr;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 impl PvsEncoding for Ipv4Addr {
@@ -17,39 +15,25 @@ impl PvsDecoding<()> for Ipv4Addr {
             return Err(());
         }
         Ok(Ipv4Addr::from(<&[u8] as TryInto<[u8;4]>>::try_into(b.as_slice()).unwrap()))
-        // Ok(Ipv4Addr::from(<&[u8] as TryInto<[u8;4]>>::try_into(b).unwrap()))
     }
 }
 
-// impl PvsProtocolCoding for Ipv4Addr {
-    
-//     fn pvs_encode(&self) -> (u8,Vec<u8>) {
-//         (GeneralAddressTypes::IPv4 as u8,self.octets().to_vec())
-//     }
+impl PvsEncoding for Ipv6Addr {
+    fn pvs_encode(&self) -> (u8,Vec<u8>) {
+        (GeneralAddressType::IPv6 as u8, self.octets().to_vec())
+    }
+}
 
-//     fn pvs_try_decode(b: &Vec<u8>) -> Result<Self, ()> {
-//         if b.len() != 4 {
-//             println!("Not the right length for an IPv4 Address {}", b.len());
-//             return Err(());
-//         }
-//         Ok(Ipv4Addr::from(<&[u8] as TryInto<[u8;4]>>::try_into(b.as_slice()).unwrap()))
-//         // Ok(Ipv4Addr::from(<&[u8] as TryInto<[u8;4]>>::try_into(b).unwrap()))
-//     }
-// }
+impl PvsDecoding<()> for Ipv6Addr {
 
-// impl PvsProtocolCoding for Ipv6Addr {
-//     fn pvs_encode(&self) -> Vec<u8> {
-//         self.octets().to_vec()
-//     }
-
-//     fn pvs_try_decode(b: &[u8]) -> Result<Self, &str> {
-//         if b.len() != 16 {
-//             println!("Not the right length for an IPv6 Address {}", b.len());
-//             return Err("Incorrect length for IPv6 Address");
-//         }
-//         Ok(Ipv6Addr::from(<&[u8] as TryInto<[u8;16]>>::try_into(b).unwrap()))
-//     }
-// }
+    fn pvs_try_decode(b: &Vec<u8>) -> Result<Self, ()> {
+        if b.len() != 16 {
+            println!("Not the right length for an IPv6 Address {}", b.len());
+            return Err(())
+        }
+        Ok(Ipv6Addr::from(<&[u8] as TryInto<[u8;16]>>::try_into(b).unwrap()))
+    }
+}
 
 impl PvsDecoding<()> for IPv4AndPort {
 
@@ -72,10 +56,51 @@ impl PvsEncoding for IPv4AndPort {
     }
 }
 
+impl<T> AddressAndPort<T>
+where T: PvsEncoding {
+
+    pub fn pvs_encode(&self) -> (u8,Vec<u8>) {
+        let mut a = self.address.pvs_encode().1;
+        a.push((self.port >> 8) as u8);
+        a.push((self.port & 0xFF) as u8);
+        (self.code, a)
+    }
+}
+
 pub fn encode_peer_entry(p: PvsPeerEntry) -> Vec<u8> {
-    //TODO
-    vec![0]
-} 
+    let mut b: Vec<u8> = vec![];
+    b.push(p.addresses.len() as u8);
+    b.push(p.metadata.len() as u8);
+    for address in p.addresses {
+        if let Some(val) = address.value_to_send {
+            let mut encoding = val.pvs_encode();
+            b.push(encoding.0);
+            b.append(&mut encoding.1);
+        }
+    }
+    for metadata in p.metadata {
+        if let Some(val) = metadata.value_to_send {
+            b.append(&mut val.pvs_encode().1);
+        }
+    }
+    b
+}
+
+pub fn encode_view_exchange(ve: PvsViewExchange) -> Vec<u8> {
+    let mut b: Vec<u8> = vec![];
+    b.push(ve.view.len() as u8);
+    b.push(ve.metadata.len() as u8);
+    for peer_entry in ve.view {
+        b.append(&mut encode_peer_entry(peer_entry));
+    }
+    for metadata in ve.metadata {
+        if let Some(val) = metadata.value_to_send {
+            b.append(&mut val.pvs_encode().1);
+        }
+    }
+    b
+
+}
 
 pub fn decode_view_exchange(b: &[u8]) -> Result<PvsViewExchange, ()> {
     //TODO: implement this properly
@@ -99,6 +124,7 @@ impl TryFrom<u8> for GeneralAddressType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn encode_ipv4() {
@@ -119,21 +145,21 @@ mod tests {
         assert_eq!(is,should);
     }
 
-    // #[test]
-    // fn try_decode_good_ipv4_port() {
-    //     let data = vec![2,155,169,7,0xAB,0xCD];
-    //     let recvd = IPv4AndPort::pvs_try_decode(&data).unwrap();
-    //     let should = Ipv4Addr::from_str("2.155.169.7").unwrap();
-    //     assert_eq!(recvd.address,should);
-    //     assert_eq!(recvd.port,0xABCD)
-    // }
+    #[test]
+    fn try_decode_good_ipv4_port() {
+        let data = vec![2,155,169,7,0xAB,0xCD];
+        let recvd = IPv4AndPort::pvs_try_decode(&data).unwrap();
+        let should = Ipv4Addr::from_str("2.155.169.7").unwrap();
+        assert_eq!(recvd.address,should);
+        assert_eq!(recvd.port,0xABCD)
+    }
 
-    // #[test]
-    // fn try_decode_bad_ipv4_port() {
-    //     let data = vec![22,1];
-    //     let r = IPv4AndPort::pvs_try_decode(&data);
-    //     assert!(r.is_err());
-    // }
+    #[test]
+    fn try_decode_bad_ipv4_port() {
+        let data = vec![22,1];
+        let r = IPv4AndPort::pvs_try_decode(&data);
+        assert!(r.is_err());
+    }
 
     #[test]
     fn try_decode_bad_ipv4() {
@@ -141,45 +167,77 @@ mod tests {
         let r = Ipv4Addr::pvs_try_decode(&data);
         assert!(r.is_err());
     }
+    #[test]
+    fn try_encode_ipv4_port() {
+        //TODO
+        assert!(false,"Not finished yet");
+    }
     
-    // #[test]
-    // fn encode_ipv6() {
-    //     let addr = Ipv6Addr::from_str("21a5:78ab::cd02:f3e6").unwrap();
-    //     let data = addr.pvs_encode();
-    //     assert_eq!(data.len(), 16);
-    //     assert_eq!(data, vec![0x21,0xa5,0x78,0xab, 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, 0xcd,0x02,0xf3,0xe6]);
-    // }
+    #[test]
+    fn encode_ipv6() {
+        let addr = Ipv6Addr::from_str("21a5:78ab::cd02:f3e6").unwrap();
+        let data = addr.pvs_encode();
+        assert_eq!(data.1.len(), 16);
+        assert_eq!(data.0, GeneralAddressType::IPv6 as u8);
+        assert_eq!(data.1, vec![0x21,0xa5,0x78,0xab, 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, 0xcd,0x02,0xf3,0xe6]);
+    }
 
-    // #[test]
-    // fn try_decode_good_ipv6() {
-    //     let mut data = vec![0x21,0xa5,0x78,0xab, 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, 0xcd,0x02,0xf3,0xe6];
-    //     let is = Ipv6Addr::pvs_try_decode(&data).unwrap();
-    //     let should = Ipv6Addr::from_str("21a5:78ab::cd02:f3e6").unwrap();
-    //     assert_eq!(is,should);
-    //     data[0] = 144;
-    //     assert_eq!(is,should);
-    // }
+    #[test]
+    fn try_decode_good_ipv6() {
+        let mut data = vec![0x21,0xa5,0x78,0xab, 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, 0xcd,0x02,0xf3,0xe6];
+        let is = Ipv6Addr::pvs_try_decode(&data).unwrap();
+        let should = Ipv6Addr::from_str("21a5:78ab::cd02:f3e6").unwrap();
+        assert_eq!(is,should);
+        data[0] = 144;
+        assert_eq!(is,should);
+    }
     
-    // #[test]
-    // fn try_decode_bad_ipv6() {
-    //     let data = vec![0x1];
-    //     let r = Ipv6Addr::pvs_try_decode(&data);
-    //     assert!(r.is_err());
-    // }
+    #[test]
+    fn try_decode_bad_ipv6() {
+        let data = vec![0x1];
+        let r = Ipv6Addr::pvs_try_decode(&data);
+        assert!(r.is_err());
+    }
 
-    // #[test]
-    // fn try_encode_multiple_addresses() {
-    //     let ip1 = Box::new(IPv4AndPort { address: Ipv4Addr::from_str("1.0.0.23").unwrap(), port: 1234 });
-    //     let ip2 = Box::new(Ipv6Addr::from_str("1::0023").unwrap());
-    //     let a1 = PvsData{ format: AddressType::IPv4AndPort as u8, value: ip1, bytes: None };
-    //     let a2 = PvsData{ format: AddressType::IPv6 as u8, value: ip2, bytes: None };
-    //     let pe = PeerEntry {addresses: vec![a1,a2], metadata: vec![]};
+    #[test]
+    fn try_encode_peer_entry_two_addr_no_metadata() {
+        let data = vec![2,0,2,34,155,169,7,0xAB,0xCD,3,0xFF,0xE3,0,0,0,0,0,0,0,0,0,0,0,0,0,3];
+        // TODO: addr1 - Ipv4port
+        let addr1 = PvsData {
+            format: GeneralAddressType::IPv4 as u8,
+            value_to_send: Some(Box::new(
+                IPv4AndPort {
+                    address: Ipv4Addr::from_str("34.155.169.7").unwrap(),
+                    port: 0xABCD
+                })),
+            recvd_bytes: None
+        };
+        let addr2 = PvsData {
+            format: GeneralAddressType::IPv6 as u8,
+            value_to_send: Some(Box::new(Ipv6Addr::from_str("ffe3::3").unwrap())),
+            recvd_bytes: None
+        };
+        let pe = PvsPeerEntry {
+            addresses: vec![addr1, addr2],
+            metadata: vec![]
+        };
+        assert_eq!(encode_peer_entry(pe),data);
+    }
 
-    //     //TODO: encode to bytes and check its okay
-    //     let should = vec![0,1];
-    //     let is = encode_peer_entry(pe);
-    //     assert_eq!(should,is)
-    // }
+    #[test]
+    fn try_encode_multiple_addresses() {
+        let ip1 = Box::new(IPv4AndPort { address: Ipv4Addr::from_str("1.0.0.23").unwrap(), port: 1234 });
+        let ip2 = Box::new(Ipv6Addr::from_str("1::0023").unwrap());
+        let a1 = PvsData{ format: GeneralAddressType::IPv4AndPort as u8, value_to_send: Some(ip1), recvd_bytes: None };
+        let a2 = PvsData{ format: GeneralAddressType::IPv6 as u8, value_to_send: Some(ip2), recvd_bytes: None };
+        let pe = PvsPeerEntry {addresses: vec![a1,a2], metadata: vec![]};
+
+        //TODO: encode to bytes and check its okay
+        let should = vec![0,1];
+        let is = encode_peer_entry(pe);
+        assert!(false,"Not finished yet");
+        assert_eq!(should,is)
+    }
 
     #[test]
     fn dummy_packing_and_unpacking_multiple_addresses() {
@@ -206,6 +264,7 @@ mod tests {
                 }
             }
         }
+        assert!(false,"Not finished yet");
 
     }
 
