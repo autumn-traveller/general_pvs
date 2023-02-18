@@ -38,7 +38,7 @@ pub struct AddressAndPort<T : PvsEncoding> {
 pub enum GeneralMetadataType {
     LogicalTimestamp = 0,
     UTCTimestamp,
-    ErrorMessage, // string
+    // ErrorMessage, // string ?
 }
 
 pub struct PvsData {
