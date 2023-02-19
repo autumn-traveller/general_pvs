@@ -56,3 +56,7 @@ pub struct PvsViewExchange {
     pub view: Vec<PvsPeerEntry>,
     pub metadata: Vec<PvsData>
 }
+
+// Message Types
+pub const PVS_VIEW_EXCHANGE_REQUEST: u8 = 0;
+pub const PVS_VIEW_EXCHANGE_RESPONSE: u8 = 1;
