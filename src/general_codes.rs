@@ -240,14 +240,14 @@ pub fn decode_peer(b: &[u8]) -> (usize, Result<PvsPeerEntry, ()>) {
 }
 
 pub fn decode_view_exchange(b: &[u8]) -> Result<PvsViewExchange, ()> {
+    let err = Err(());
     let avail = b.len();
     if avail < MIN_PVS_SIZE {
         println!("Slice passed to view exchange decoder is too small");
-        return Err(());
+        return err;
     }
     let mut pve = PvsViewExchange { view: vec![] , metadata: vec![]};
     let mut i = 0;
-    let err = Err(());
     if b[i] & 0xF0 != PVS_VERSION {
         println!("Unexpected PVS version");
         return err;
