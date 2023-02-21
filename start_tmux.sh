@@ -19,9 +19,8 @@ do
 	for j in $(seq 2 $NODES);
 	do
 		echo starting node $j in cluster $i
-		tmux splitw -t "cluster$i" -h "cargo run $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
-		#tmux neww -a -n "c$i-node$j" bash
-		#tmux send-keys -t "c$i-node$j" "cargo run $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST"
+		tmux neww -a -n "node$j" "cargo run $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
+		#tmux splitw -t "cluster$i" -h "cargo run $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
 	done
 done
 

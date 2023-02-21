@@ -1,4 +1,4 @@
-// use std::cmp::Ordering;
+use std::cmp::min;
 use std::io::{Write, Read, Cursor, ErrorKind};
 use byteorder::{NetworkEndian, ReadBytesExt};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr, TcpStream, TcpListener};
@@ -113,7 +113,7 @@ fn handle_peer_conn(conn: &mut TcpStream, view: &mut DemoView, us: u16, send_res
             if let Ok(_) = send_demo_view_exchange(conn, view, us, true) {
                 conn.shutdown(std::net::Shutdown::Both);
             }
-            view.remove(0);
+            view.remove(0); // always call this after send_demo...
         }
         // print_recvd_view(pve);
         let mut incoming = translate_pvs_to_demo_view(pve, us);
@@ -125,20 +125,22 @@ fn handle_peer_conn(conn: &mut TcpStream, view: &mut DemoView, us: u16, send_res
 }
 
 fn slice_view(view: &mut DemoView, us: u16) -> &[DemoPeer] {
-    let max = if view.len() < VIEW_SIZE { view.len()} else { VIEW_SIZE };
+    let to_send = min(view.len() + 1,VIEW_SIZE);
     view.insert(0, DemoPeer { port: us, timestamp: 0 });
-    let r = &view[0..max];
-    return r;
+    &view[0..to_send]
 }
 
 fn send_demo_view_exchange(conn: &mut TcpStream, view: &mut DemoView, us: u16, is_response: bool) -> std::io::Result<usize>{
     let v = translate_demo_view_to_pvs(slice_view(view, us));
-    view.remove(0);
+    view.remove(0); // always call this after send_demo...
     let bytes = encode_view_exchange(v, if is_response {PVS_VIEW_EXCHANGE_RESPONSE} else {PVS_VIEW_EXCHANGE_REQUEST});
     conn.write(bytes.as_slice())
 }
 
 fn peer_sample(view: &mut DemoView, us: u16) {
+    if view.is_empty() {
+        return;
+    }
     let ind = rand::random::<usize>() % view.len();
     let peer = view[ind];
     let err;
