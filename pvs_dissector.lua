@@ -160,3 +160,6 @@ udp_table = DissectorTable.get("udp.port")
 tcp_table = DissectorTable.get("tcp.port")
 udp_table:add(7777,pvs_proto)
 tcp_table:add(7777,pvs_proto)
+for i = 5001, 5999 do
+    tcp_table:add(i,pvs_proto)
+end

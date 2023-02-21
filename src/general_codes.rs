@@ -499,7 +499,6 @@ mod tests {
     #[test]
     fn try_encode_peer_entry_two_addr_no_metadata() {
         let data = vec![2,0,2,6,34,155,169,7,0xAB,0xCD, 3,16,0xFF,0xE3,0,0,0,0,0,0,0,0,0,0,0,0,0,3];
-        // TODO: addr1 - Ipv4port
         let addr1 = PvsData {
             format: GeneralAddressType::IPv4 as u8,
             value_to_send: Some(Box::new(
