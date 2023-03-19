@@ -1,5 +1,6 @@
 #! /bin/bash
 
+cargo build
 
 PORT="5000"
 NODES="4"
@@ -14,13 +15,12 @@ tmux kill-server
 for i in $(seq 1 $CLUSTERS);
 do
 	echo starting cluster $i
-	echo starting node 1 in cluster $i
-	tmux new-session -d -n "cluster$i" "cargo run 1 $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
+	echo starting connector node for cluster $i
+	tmux new-session -d -n "cluster$i" "./target/debug/demo 1 $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
 	for j in $(seq 2 $NODES);
 	do
 		echo starting node $j in cluster $i
-		tmux neww -a -n "node$j" "cargo run $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
-		#tmux splitw -t "cluster$i" -h "cargo run $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
+		tmux neww -a -n "node$j" "./target/debug/demo $j $PORT $CLUSTERS $i $NODES $CLUSTER_DIST;bash"
 	done
 done
 
